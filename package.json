@@ -1,0 +1,16 @@
+{
+  "name": "bot-dr-andre-franco",
+  "version": "1.0.0",
+  "description": "WhatsApp bot do Dr. André Franco (whatsapp-web.js)",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "postinstall": "node -e \"try{require('puppeteer');}catch(e){process.exit(0)}\""
+  },
+  "dependencies": {
+    "puppeteer": "^23.8.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.1"
+  }
+}
