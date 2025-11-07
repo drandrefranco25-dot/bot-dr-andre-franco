@@ -1,179 +1,104 @@
-client.on('qr', (qr) => {
-    console.log("🔐 QR RAW:");
-    console.log(qr);
-});
+import pkg from "whatsapp-web.js";
+const { Client, LocalAuth, MessageMedia } = pkg;
+import qrcode from "qrcode-terminal";
 
-// ====== CONFIG ======
+console.log("✅ Iniciando bot...");
+
+// === CONFIGURAÇÕES ===
 const CLINIC_NAME = "Dr. André Franco";
-const ATTENDANT_PHONE = "5573998214536"; // seu número sem "+"; o @c.us será adicionado
-const HOURS = "segunda a sábado com horário marcado";
-const ADDRESS = "Av. Presidente Vargas, 1439 - Santa Clara, Santarém (CEMED, sala 06)";
+const PHONE_ATTENDANT = "559398214536"; // WhatsApp pessoal
 
-// ====== CLIENT (config especial para Railway) ======
+// Inicialização do cliente
 const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: {
-    headless: true,
-    channel: "chrome",
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--disable-software-rasterizer",
-      "--no-first-run",
-      "--no-zygote",
-      "--single-process"
-    ]
-  },
-  webVersionCache: { type: "local" }
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    },
 });
 
-// ===== ✅ EXIBIR QR COM LINK CLICÁVEL =====
+// Mostra QR Code
 client.on("qr", (qr) => {
-  // Raw data
-  console.log("\n=== QR RAW START ===");
-  console.log(qr);
-  console.log("=== QR RAW END ===\n");
-
-  // Link pronto para imagem (NOVIDADE!)
-  const imgUrl =
-    "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" +
-    encodeURIComponent(qr);
-
-  console.log("🔗 Abra este link para ver o QR como IMAGEM:");
-  console.log(imgUrl + "\n");
-
-  // QR ASCII
-  qrcode.generate(qr, { small: true });
-
-  console.log("📲 Escaneie o QR Code com o WhatsApp");
+    console.log("📲 Escaneie o QR Code abaixo:");
+    qrcode.generate(qr, { small: true });
 });
 
-// ====== EVENTOS ======
+// Quando estiver pronto
 client.on("ready", () => {
-  console.log("✅ Bot conectado com sucesso!");
+    console.log("✅ Bot conectado com sucesso!");
 });
 
-client.on("auth_failure", () => {
-  console.log("❌ Falha de autenticação — escaneie o QR novamente.");
-});
+// ====== LÓGICA DO MENU ======
 
-// ====== HELPER ======
-function menu() {
-  return `
-👋 Olá! Sou Dea, assistente do *${CLINIC_NAME}*.
-
-Como posso ajudar?
-
-1) Agendar avaliação
-2) Implante dentário
-3) Ortodontia / Aparelho
-4) Localização da clínica
-5) Falar com atendente
-6) Outros assuntos
-7) Clínica geral
-
-Digite o número desejado.
-
-📌 *Dica:* envie "menu" a qualquer momento para voltar.
-`;
-}
-
-async function sendToHuman(msg, original) {
-  try {
-    await client.sendMessage(
-      `${ATTENDANT_PHONE}@c.us`,
-      `📨 *Encaminhado ao atendente*\n• De: ${msg.from}\n• Mensagem: ${original}\n\nAbrir chat: https://wa.me/${msg.from.split("@")[0]}`
-    );
-  } catch (e) {
-    console.log("Erro ao notificar atendente:", e.message);
-  }
-
-  await msg.reply(
-    "✅ Vou te encaminhar para um *atendente humano*. Aguarde um instante."
-  );
-}
-
-// Palavras que chamam menu
-const greetings = [
-  "oi",
-  "olá",
-  "ola",
-  "oi tudo bem",
-  "ola tudo bem",
-  "tudo bem",
-  "bom dia",
-  "boa tarde",
-  "boa noite",
-  "início",
-  "inicio"
-];
-
-// ====== LÓGICA ======
 client.on("message", async (msg) => {
-  const raw = (msg.body || "").trim();
-  const text = raw.toLowerCase();
+    const txt = msg.body.toLowerCase();
 
-  // Saudação → Menu
-  if (text === "menu" || greetings.some((g) => text.includes(g))) {
-    return msg.reply(menu());
-  }
+    const send = (t) => client.sendMessage(msg.from, t);
 
-  // Preço / clareamento → atendente
-  if (/(preç|custa|valor|clareament)/.test(text)) {
-    return sendToHuman(msg, raw);
-  }
+    // SAUDAÇÃO AUTOMÁTICA
+    const saudacoes = ["oi", "olá", "ola", "oi tudo bem", "ola tudo bem", "oie"];
+    if (saudacoes.includes(txt)) {
+        return send(
+            `👋 Olá, tudo bem?\nSou Dea, assistente do *${CLINIC_NAME}*.\n\nEm que posso ajudar?\n\n1) Agendar avaliação\n2) Implante dentário\n3) Ortodontia / Aparelho\n4) Localização da clínica\n5) Falar com atendente\n6) Outros assuntos\n7) Clínica geral\n\nDigite o número desejado.\n\n👉 Dica: envie *menu* a qualquer momento para voltar.`
+        );
+    }
 
-  // Opções do menu
-  if (text === "1") {
-    return msg.reply(
-      `📅 *Agendar avaliação*\nAtendemos de ${HOURS}.\n\nPor favor, me informe seu *nome completo*.`
+    // MENU
+    if (txt === "menu") {
+        return send(
+            `📋 MENU\n\n1) Agendar avaliação\n2) Implante dentário\n3) Ortodontia / Aparelho\n4) Localização da clínica\n5) Falar com atendente\n6) Outros assuntos\n7) Clínica geral\n\nDigite o número desejado.`
+        );
+    }
+
+    // OPÇÕES
+    switch (txt) {
+        case "1":
+            return send(
+                `📅 *Agendar avaliação*\nAtendemos de *segunda a sábado com horário marcado*.\n\nPor favor, me informe seu *nome completo*.`
+            );
+
+        case "2":
+            return send(
+                `🦷 *Implante dentário*\nPlanejamento seguro e individualizado.\n\nPara avançarmos, diga seu *nome completo*.`
+            );
+
+        case "3":
+            return send(
+                `😃 *Ortodontia / Aparelho*\nTratamento personalizado para seu sorriso.\n\nPor favor, me informe seu nome.`
+            );
+
+        case "4":
+            return send(
+                `📍 *Localização*\nAv. Presidente Vargas, 1439 – Santa Clara – Santarém\nClínica CEMED – Sala 06`
+            );
+
+        case "5":
+        case "6":
+            return send(`✅ Encaminhando para atendimento humano...\nAguarde.`);
+        
+        case "7":
+            return send(
+                `🦷 *Clínica Geral*\nRealizamos diversos tratamentos. Para melhor te ajudar, me diga seu nome.`
+            );
+    }
+
+    // Se perguntar algo fora do menu
+    if (
+        txt.includes("clareamento") ||
+        txt.includes("quanto custa") ||
+        txt.includes("preço") ||
+        txt.includes("valor")
+    ) {
+        return send(
+            `💬 Vou encaminhar sua mensagem para um atendente humano.\nAguarde um instante.`
+        );
+    }
+
+    // Se não reconheceu
+    return send(
+        "❓ Não entendi.\nDigite *menu* para ver as opções ou digite *5* para falar com atendente."
     );
-  }
-
-  if (text === "2") {
-    return msg.reply(
-      `🔩 *Implante dentário*\nPlanejamento seguro e individualizado.\n\nPara avançar, me diga seu *nome completo*.`
-    );
-  }
-
-  if (text === "3") {
-    return msg.reply(
-      `😬 *Ortodontia / Aparelho*\nTratamento personalizado.\n\nPara avançar, me diga seu *nome completo*.`
-    );
-  }
-
-  if (text === "4") {
-    return msg.reply(`📍 *Localização da clínica:*\n${ADDRESS}`);
-  }
-
-  if (text === "5" || text.includes("atendente") || text.includes("humano")) {
-    return sendToHuman(msg, raw);
-  }
-
-  if (text === "6" || text.includes("outro")) {
-    return sendToHuman(msg, raw);
-  }
-
-  if (text === "7" || text.includes("clinica geral") || text.includes("clínica geral")) {
-    return msg.reply(
-      `🦷 *Clínica geral*\nLimpeza, restauração e prevenção.\n\nPara avançar, me diga seu *nome completo*.`
-    );
-  }
-
-  // Se mandou nome (2+ palavras) → agradece
-  if (!text.includes("?") && raw.split(" ").length >= 2) {
-    return msg.reply(
-      `✅ Obrigado, *${raw}*!\nComo posso ajudar agora?\n\nSe quiser, digite *menu*.`
-    );
-  }
-
-  // Não entendeu
-  return msg.reply(
-    `❓ Não entendi.\nEnvie *menu* para ver as opções ou *5* para falar com atendente.`
-  );
 });
 
-// =========== START ===========
+// Inicia
 client.initialize();
