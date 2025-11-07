@@ -1,7 +1,6 @@
 {
   "name": "bot-dr-andre-franco",
   "version": "1.0.0",
-  "description": "WhatsApp bot do Dr. André Franco",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
